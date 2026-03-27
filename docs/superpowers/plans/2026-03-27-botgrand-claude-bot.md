@@ -1060,7 +1060,7 @@ git commit -m "feat: add GitHub Actions workflow for claude_bot (15-min cron)"
 - [ ] **Step 1: Run full test suite**
 
 Run: `pytest -v --tb=short`
-Expected: All 17 tests pass
+Expected: All 24 tests pass
 
 - [ ] **Step 2: Verify project structure**
 
