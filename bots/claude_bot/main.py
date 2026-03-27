@@ -49,7 +49,7 @@ def format_message(change_type: str, incident: dict) -> str:
 
 def run(state_path: str = "state.json") -> None:
     token = os.environ["TELEGRAM_BOT_TOKEN"]
-    chat_id = os.environ["TELEGRAM_CHAT_ID"]
+    chat_ids = [cid.strip() for cid in os.environ["TELEGRAM_CHAT_IDS"].split(",") if cid.strip()]
 
     state = load_state(state_path)
     is_first_run = not state.get("initialized", False)
@@ -64,11 +64,12 @@ def run(state_path: str = "state.json") -> None:
             state["consecutive_failures"] >= CONSECUTIVE_FAILURE_THRESHOLD
             and not state["failure_warning_sent"]
         ):
-            send_message(
-                token,
-                chat_id,
-                f"⚠️ <b>Warning:</b> Anthropic status page unreachable for {state['consecutive_failures']} consecutive checks.",
-            )
+            for cid in chat_ids:
+                send_message(
+                    token,
+                    cid,
+                    f"⚠️ <b>Warning:</b> Anthropic status page unreachable for {state['consecutive_failures']} consecutive checks.",
+                )
             state["failure_warning_sent"] = True
 
         save_state(state, state_path)
@@ -89,7 +90,8 @@ def run(state_path: str = "state.json") -> None:
         for change in changes:
             msg = format_message(change["type"], change["incident"])
             print(f"Sending notification: {change['type']} — {change['incident']['name']}")
-            send_message(token, chat_id, msg)
+            for cid in chat_ids:
+                send_message(token, cid, msg)
 
     # Mark as initialized and clean up old resolved incidents
     new_state["initialized"] = True

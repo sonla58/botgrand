@@ -75,7 +75,7 @@ def test_run_first_run_no_notifications(tmp_path):
         },
         status=200,
     )
-    with patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "tok", "TELEGRAM_CHAT_ID": "cid"}):
+    with patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "tok", "TELEGRAM_CHAT_IDS": "cid"}):
         run(state_path)
     # No Telegram calls should have been made
     assert len([c for c in responses.calls if "telegram" in c.request.url]) == 0
@@ -117,7 +117,7 @@ def test_run_new_incident_sends_notification(tmp_path):
         status=200,
     )
 
-    with patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "tok", "TELEGRAM_CHAT_ID": "cid"}):
+    with patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "tok", "TELEGRAM_CHAT_IDS": "cid"}):
         run(state_path)
     telegram_calls = [c for c in responses.calls if "telegram" in c.request.url]
     assert len(telegram_calls) == 1
@@ -132,7 +132,7 @@ def test_run_fetch_failure_increments_counter(tmp_path):
 
     responses.add(responses.GET, STATUS_PAGE_URL, status=500)
 
-    with patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "tok", "TELEGRAM_CHAT_ID": "cid"}):
+    with patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "tok", "TELEGRAM_CHAT_IDS": "cid"}):
         run(state_path)
 
     with open(state_path) as f:
@@ -155,7 +155,7 @@ def test_run_sends_warning_at_failure_threshold(tmp_path):
         status=200,
     )
 
-    with patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "tok", "TELEGRAM_CHAT_ID": "cid"}):
+    with patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "tok", "TELEGRAM_CHAT_IDS": "cid"}):
         run(state_path)
 
     telegram_calls = [c for c in responses.calls if "telegram" in c.request.url]
@@ -176,7 +176,7 @@ def test_run_no_duplicate_failure_warning(tmp_path):
 
     responses.add(responses.GET, STATUS_PAGE_URL, status=500)
 
-    with patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "tok", "TELEGRAM_CHAT_ID": "cid"}):
+    with patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "tok", "TELEGRAM_CHAT_IDS": "cid"}):
         run(state_path)
 
     telegram_calls = [c for c in responses.calls if "telegram" in c.request.url]
@@ -196,7 +196,7 @@ def test_run_resets_failure_counters_on_success(tmp_path):
 
     responses.add(responses.GET, STATUS_PAGE_URL, json={"incidents": []}, status=200)
 
-    with patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "tok", "TELEGRAM_CHAT_ID": "cid"}):
+    with patch.dict(os.environ, {"TELEGRAM_BOT_TOKEN": "tok", "TELEGRAM_CHAT_IDS": "cid"}):
         run(state_path)
 
     with open(state_path) as f:
