@@ -43,6 +43,7 @@ def test_send_message_retry_on_failure_then_success(mock_sleep):
 def test_send_message_raises_after_retry_exhausted(mock_sleep):
     responses.add(responses.POST, TELEGRAM_URL, json={"ok": False}, status=500)
     responses.add(responses.POST, TELEGRAM_URL, json={"ok": False}, status=500)
+    responses.add(responses.POST, TELEGRAM_URL, json={"ok": False}, status=500)
     with pytest.raises(RuntimeError, match="Failed to send Telegram message"):
         send_message(FAKE_TOKEN, FAKE_CHAT_ID, "Fail test")
-    assert len(responses.calls) == 2
+    assert len(responses.calls) == 3

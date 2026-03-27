@@ -140,6 +140,25 @@ def test_diff_postmortem_treated_as_update():
     assert changes[0]["type"] == "updated"
 
 
+def test_diff_disappeared_from_feed_is_resolved():
+    old = empty_state()
+    old["incidents"]["abc"] = {
+        "name": "Outage",
+        "status": "investigating",
+        "last_update_id": "u1",
+        "last_update_at": "2026-03-27T10:00:00Z",
+        "resolved_at": None,
+        "shortlink": "https://example.com/incidents/abc",
+        "affected_components": ["API"],
+        "latest_update_body": "Investigating.",
+    }
+    new = empty_state()  # incident gone from unresolved feed
+    changes = diff_state(old, new)
+    assert len(changes) == 1
+    assert changes[0]["type"] == "resolved"
+    assert changes[0]["incident"]["name"] == "Outage"
+
+
 def test_diff_no_changes():
     old = empty_state()
     old["incidents"]["abc"] = {

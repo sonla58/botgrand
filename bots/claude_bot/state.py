@@ -41,6 +41,14 @@ def diff_state(old: dict, new: dict) -> list[dict]:
                 # postmortem and all other status changes are updates
                 changes.append({"type": "updated", "incident": inc})
 
+    # Detect resolved: was in old state but disappeared from unresolved feed
+    for inc_id, inc in old_incidents.items():
+        if inc_id not in new_incidents and not inc.get("resolved_at"):
+            resolved_inc = dict(inc)
+            resolved_inc["status"] = "resolved"
+            resolved_inc["latest_update_body"] = "This incident has been resolved."
+            changes.append({"type": "resolved", "incident": resolved_inc})
+
     return changes
 
 
