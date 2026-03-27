@@ -358,7 +358,7 @@ def test_diff_resolved_incident():
     assert changes[0]["type"] == "resolved"
 
 
-def test_diff_postmortem_treated_as_resolved():
+def test_diff_postmortem_treated_as_update():
     old = empty_state()
     old["incidents"]["abc"] = {
         "name": "Outage",
@@ -383,7 +383,7 @@ def test_diff_postmortem_treated_as_resolved():
     }
     changes = diff_state(old, new)
     assert len(changes) == 1
-    assert changes[0]["type"] == "resolved"
+    assert changes[0]["type"] == "updated"
 
 
 def test_diff_no_changes():
@@ -479,9 +479,10 @@ def diff_state(old: dict, new: dict) -> list[dict]:
         if inc_id not in old_incidents:
             changes.append({"type": "new", "incident": inc})
         elif inc["last_update_id"] != old_incidents[inc_id]["last_update_id"]:
-            if inc["status"] in ("resolved", "postmortem"):
+            if inc["status"] == "resolved":
                 changes.append({"type": "resolved", "incident": inc})
             else:
+                # postmortem and all other status changes are updates
                 changes.append({"type": "updated", "incident": inc})
 
     return changes
@@ -502,7 +503,7 @@ def cleanup_resolved(state: dict) -> None:
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `pytest tests/test_state.py -v`
-Expected: 8 passed
+Expected: 9 passed
 
 - [ ] **Step 5: Commit**
 
@@ -973,12 +974,12 @@ if __name__ == "__main__":
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `pytest tests/test_main.py -v`
-Expected: 6 passed
+Expected: 9 passed
 
 - [ ] **Step 5: Run all tests**
 
 Run: `pytest -v`
-Expected: All tests pass (22 total)
+Expected: All tests pass (24 total)
 
 - [ ] **Step 6: Commit**
 
