@@ -41,7 +41,9 @@ These are standard Atlassian Statuspage endpoints.
 State is persisted via GitHub Actions cache. The bot saves state on **every run** (not just when incidents change) to prevent cache eviction (GitHub evicts cache entries after 7 days of no access).
 
 **Cache key strategy:**
-- Key: `claude-bot-state-v1` (version suffix allows cache invalidation on format changes)
+- Save key: `claude-bot-state-v1-${{ github.run_id }}` (unique per run, since GitHub Actions cache keys are immutable)
+- Restore key prefix: `claude-bot-state-v1-` (restores the most recent matching entry)
+- Version suffix (`v1`) allows cache invalidation on format changes
 - Runs on `main` branch only
 - On cache miss (first run or eviction): start fresh, load current incidents without notifying
 
@@ -61,7 +63,8 @@ Three types of changes are detected:
       "name": "Degraded API Performance",
       "status": "investigating",
       "last_update_id": "upd_456",
-      "last_update_at": "2026-03-27T10:00:00Z"
+      "last_update_at": "2026-03-27T10:00:00Z",
+      "resolved_at": null
     }
   },
   "consecutive_failures": 0,
@@ -105,6 +108,8 @@ This incident has been resolved.
 ```
 
 **Postmortem published:** Treated as an update notification (🟡 emoji) — not a new incident.
+
+Per-incident URLs are taken from the API response's `shortlink` field rather than manually constructed.
 
 ### Secrets Required (GitHub Repo Secrets)
 
