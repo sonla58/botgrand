@@ -38,12 +38,19 @@ These are standard Atlassian Statuspage endpoints.
 
 ### State Tracking
 
-After each run, the current incident state is saved and persisted via GitHub Actions cache (keyed by bot name). On the next run, the previous state is loaded and compared.
+State is persisted via GitHub Actions cache. The bot saves state on **every run** (not just when incidents change) to prevent cache eviction (GitHub evicts cache entries after 7 days of no access).
+
+**Cache key strategy:**
+- Key: `claude-bot-state-v1` (version suffix allows cache invalidation on format changes)
+- Runs on `main` branch only
+- On cache miss (first run or eviction): start fresh, load current incidents without notifying
 
 Three types of changes are detected:
 - **New incident** — incident ID not present in previous state
 - **Updated incident** — same ID but a new status update entry (e.g., investigating → identified → monitoring)
 - **Resolved incident** — incident status moved to "resolved" or "postmortem"
+
+**State cleanup:** Resolved incidents are removed from state 24 hours after resolution to prevent unbounded growth.
 
 ### State Format (`state.json`)
 
@@ -57,7 +64,8 @@ Three types of changes are detected:
       "last_update_at": "2026-03-27T10:00:00Z"
     }
   },
-  "consecutive_failures": 0
+  "consecutive_failures": 0,
+  "failure_warning_sent": false
 }
 ```
 
@@ -78,7 +86,7 @@ The diff logic compares incident IDs and `last_update_id` to detect changes.
 Status: Investigating
 Affected: Claude API, claude.ai
 Details: We are investigating reports of increased latency...
-🔗 https://status.anthropic.com
+🔗 https://status.anthropic.com/incidents/abc123
 ```
 
 **Update:**
@@ -86,15 +94,17 @@ Details: We are investigating reports of increased latency...
 🟡 Update: Degraded API Performance
 Status: Identified
 The issue has been identified and a fix is being deployed...
-🔗 https://status.anthropic.com
+🔗 https://status.anthropic.com/incidents/abc123
 ```
 
 **Resolved:**
 ```
 🟢 Resolved: Degraded API Performance
 This incident has been resolved.
-🔗 https://status.anthropic.com
+🔗 https://status.anthropic.com/incidents/abc123
 ```
+
+**Postmortem published:** Treated as an update notification (🟡 emoji) — not a new incident.
 
 ### Secrets Required (GitHub Repo Secrets)
 
@@ -127,8 +137,8 @@ env:
 
 ## Error Handling & Edge Cases
 
-- **Status page unreachable:** Log a warning, skip the run. If unreachable for 3+ consecutive runs (tracked via `consecutive_failures` in state), send a single warning to Telegram.
-- **Telegram API failure:** Log the error, exit with non-zero code so GitHub Actions marks the run as failed (visible in Actions tab).
+- **Status page unreachable:** Log a warning, skip the run. If unreachable for 3+ consecutive runs (tracked via `consecutive_failures` in state), send a single warning to Telegram. The `failure_warning_sent` flag prevents repeated warnings. Both `consecutive_failures` and `failure_warning_sent` reset on the next successful fetch.
+- **Telegram API failure:** Retry once with a 5-second delay. If still failing, log the error and exit with non-zero code so GitHub Actions marks the run as failed (visible in Actions tab). Missed notifications are an accepted trade-off — the next run will not re-send past updates.
 - **First run (no previous state):** Load current incidents into state without sending notifications. Prevents a flood of messages about existing incidents on first deploy.
 - **Duplicate notifications:** The `last_update_id` comparison ensures the same update is never sent twice, even if the cron overlaps.
 
@@ -146,6 +156,8 @@ env:
 |---|---|---|
 | Architecture | Simple script per bot | Right-sized for current scope; refactor to base class when 3+ bots exist |
 | Polling interval | 15 minutes | Lightweight, sufficient for status page monitoring |
-| State storage | GitHub Actions cache | Keeps repo clean, no noisy commits |
+| State storage | GitHub Actions cache | Keeps repo clean, no noisy commits. State saved every run to prevent 7-day eviction |
+| Component filter | All Claude-related components | Monitor all Anthropic services; can be narrowed in config.py |
+| Logging | Print to stdout/stderr | Standard for GitHub Actions; structured logging deferred until needed |
 | Notification scope | Full lifecycle | New + updates + resolved for complete visibility |
 | Language | Python | Simple, good libraries, team familiarity |
