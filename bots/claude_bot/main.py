@@ -1,6 +1,7 @@
 # bots/claude_bot/main.py
 import os
 import sys
+from html import escape
 from bots.claude_bot.config import CONSECUTIVE_FAILURE_THRESHOLD
 from bots.claude_bot.state import load_state, save_state, diff_state, empty_state, cleanup_resolved
 from bots.claude_bot.status_page import fetch_incidents
@@ -8,10 +9,10 @@ from shared.telegram import send_message
 
 
 def format_message(change_type: str, incident: dict) -> str:
-    name = incident["name"]
-    status = incident.get("status", "unknown").replace("_", " ").title()
-    components = ", ".join(incident.get("affected_components", []))
-    body = incident.get("latest_update_body", "")
+    name = escape(incident["name"])
+    status = escape(incident.get("status", "unknown").replace("_", " ").title())
+    components = escape(", ".join(incident.get("affected_components", [])))
+    body = escape(incident.get("latest_update_body", ""))
     link = incident.get("shortlink", "https://status.anthropic.com")
 
     if change_type == "new":
